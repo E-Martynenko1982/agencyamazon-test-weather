@@ -1,5 +1,5 @@
 import { Container, Typography } from "@mui/material";
-import WeatherForm from "./components/WeatherForm";
+import WeatherForm from "./components/WeatherForm/WeatherForm";
 
 function App() {
   return (

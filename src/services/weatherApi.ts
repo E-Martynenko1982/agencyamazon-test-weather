@@ -1,118 +1,109 @@
-import axios from "axios";
+import axios from 'axios';
+import { GeocodingResponse, WeatherApiResponse, WeatherData } from '../types/weather';
 
-// Ключ API з файлу .env (наприклад, .env.local), мусить починатися з "VITE_"
 const API_KEY = import.meta.env.VITE_OPEN_WEATHER_API_KEY;
+const GEOCODE_URL = import.meta.env.VITE_GEOCODE_API_URL;
+const WEATHER_URL = import.meta.env.VITE_WEATHER_API_URL;
 
-interface GeocodingResponse {
-	lat: number;
-	lon: number;
-	name: string;
+if (!API_KEY) {
+  console.error('VITE_OPEN_WEATHER_API_KEY is not set in .env file!');
+  throw new Error('VITE_OPEN_WEATHER_API_KEY is not configured.');
+}
+if (!GEOCODE_URL) {
+  console.error('VITE_GEOCODE_API_URL is not set in .env file!');
+  throw new Error('VITE_GEOCODE_API_URL is not configured.');
+}
+if (!WEATHER_URL) {
+  console.error('VITE_WEATHER_API_URL is not set in .env file!');
+  throw new Error('VITE_WEATHER_API_URL is not configured.');
 }
 
-interface WeatherResponse {
-	coord: {
-		lon: number;
-		lat: number;
-	};
-	weather: {
-		id: number;
-		main: string;
-		description: string;
-		icon: string;
-	}[];
-	base: string;
-	main: {
-		temp: number;
-		feels_like: number;
-		pressure: number;
-		humidity: number;
-		temp_min: number;
-		temp_max: number;
-		sea_level?: number;
-		grnd_level?: number;
-	};
-	visibility?: number;
-	wind: {
-		speed: number;
-		deg: number;
-		gust?: number;
-	};
-	clouds?: {
-		all: number;
-	};
-	rain?: {
-		"1h"?: number;
-	};
-	snow?: {
-		"1h"?: number;
-	};
-	dt: number; // час оновлення даних (Unix, UTC)
-	sys: {
-		type?: number;
-		id?: number;
-		country?: string;
-		sunrise?: number;
-		sunset?: number;
-	};
-	timezone: number; // зсув у секундах від UTC
-	id: number;
-	name: string; // назва міста
-	cod: number;
-}
-
-// Ця функція виконує геокодування: перетворює назву міста на lat, lon
 async function fetchCityCoordinates(
-	city: string
+  city: string,
 ): Promise<{ lat: number; lon: number; name: string }> {
-	const geocodeUrl = "https://api.openweathermap.org/geo/1.0/direct";
-	const resp = await axios.get<GeocodingResponse[]>(geocodeUrl, {
-		params: {
-			q: city,
-			limit: 1,
-			appid: API_KEY,
-		},
-	});
+  const inputCityTrimmed = city.trim();
+  if (!inputCityTrimmed) {
+    throw new Error('City name cannot be empty.');
+  }
 
-	if (!resp.data || resp.data.length === 0) {
-		throw new Error("City not found");
-	}
+  try {
+    const { data: geocodingData } = await axios.get<GeocodingResponse[]>(GEOCODE_URL, {
+      params: { q: inputCityTrimmed, limit: 1, appid: API_KEY },
+      timeout: 5000,
+    });
 
-	const { lat, lon, name } = resp.data[0];
-	return { lat, lon, name };
+    if (!geocodingData || geocodingData.length === 0) {
+      console.log(`Geocoding API returned no results for "${inputCityTrimmed}"`);
+      throw new Error(`City not found: ${inputCityTrimmed}`);
+    }
+
+    const { lat, lon, name: foundName } = geocodingData[0];
+    if (!foundName.toLowerCase().includes(inputCityTrimmed.toLowerCase())) {
+      console.warn(
+        `Geocoding mismatch: Input "${inputCityTrimmed}" resulted in "${foundName}". Treating as not found.`,
+      );
+      throw new Error(`City not found: ${inputCityTrimmed}`);
+    }
+
+    console.log(
+      `Coordinates validated for "${inputCityTrimmed}" as "${foundName}": lat=${lat}, lon=${lon}`,
+    );
+    return { lat, lon, name: foundName };
+  } catch (error: any) {
+    if (
+      error.message.startsWith('City not found:') ||
+      error.message.startsWith('City name cannot be empty')
+    ) {
+      throw error;
+    }
+
+    console.error('Geocoding API error:', error.response?.data || error.message);
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new Error('Unauthorized: Invalid API Key for Geocoding.');
+    }
+    throw new Error(`Failed to get coordinates for ${inputCityTrimmed}. ${error.message}`);
+  }
 }
 
-/**
- * Основна функція: за назвою міста визначаємо координати,
- * а потім отримуємо погоду з endpoint /data/2.5/weather
- */
-export async function fetchWeatherByCity(city: string): Promise<{
-	cityName: string;
-	temperature: number;
-	description: string;
-	icon: string;
-	dt: number;
-}> {
-	// 1. Спочатку отримуємо координати
-	const { lat, lon } = await fetchCityCoordinates(city);
+export async function fetchWeatherByCity(city: string): Promise<WeatherData> {
+  const { lat, lon, name: geocodedName } = await fetchCityCoordinates(city);
 
-	// 2. Потім отримуємо погоду через /data/2.5/weather
-	const weatherUrl = "https://api.openweathermap.org/data/2.5/weather";
-	const response = await axios.get<WeatherResponse>(weatherUrl, {
-		params: {
-			lat,
-			lon,
-			units: "metric", // щоб отримати температуру в °C
-			appid: API_KEY,
-		},
-	});
+  try {
+    const { data: weatherApiData } = await axios.get<WeatherApiResponse>(WEATHER_URL, {
+      params: {
+        lat,
+        lon,
+        units: 'metric',
+        appid: API_KEY,
+      },
+      timeout: 5000,
+    });
 
-	const data = response.data;
-	// Витягуємо основну інформацію
-	return {
-		cityName: data.name, // з поля "name"
-		temperature: data.main.temp, // з поля "main.temp"
-		description: data.weather[0].description,
-		icon: data.weather[0].icon, // "weather[0].icon" -> код іконки
-		dt: data.dt, // час оновлення
-	};
+    if (
+      !weatherApiData ||
+      !weatherApiData.main ||
+      !weatherApiData.weather ||
+      weatherApiData.weather.length === 0
+    ) {
+      throw new Error('Incomplete weather data received from API.');
+    }
+    const weatherResult: WeatherData = {
+      cityName: weatherApiData.name || geocodedName,
+      temperature: weatherApiData.main.temp,
+      description: weatherApiData.weather[0].description,
+      icon: weatherApiData.weather[0].icon,
+      dt: weatherApiData.dt,
+    };
+    console.log('Weather data received:', weatherResult);
+    return weatherResult;
+  } catch (error: any) {
+    if (error.message.includes('City not found:')) {
+      throw error;
+    }
+    console.error('Weather API error:', error.response?.data || error.message);
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new Error('Unauthorized: Invalid API Key for Weather.');
+    }
+    throw new Error(`Failed to fetch weather for ${city}. ${error.message}`);
+  }
 }
