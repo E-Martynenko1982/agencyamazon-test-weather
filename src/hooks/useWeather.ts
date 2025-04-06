@@ -37,20 +37,15 @@ export const useWeather = (): UseWeatherResult => {
     if (isCacheValid(cachedData)) {
       setWeather(cachedData!.data);
       setIsLoading(false);
-      console.log(`Data for ${trimmedCity} loaded from cache.`);
       return;
     } else if (cachedData) {
       removeCachedWeather(trimmedCity);
-      console.log(`Expired cache removed for ${trimmedCity}.`);
     }
 
-    console.log(`Fetching data from API for ${trimmedCity}...`);
     try {
       const result = await fetchWeatherByCity(trimmedCity);
       setWeather(result);
-      console.log(result);
       setCachedWeatherData(trimmedCity, result);
-      console.log(`Data for ${trimmedCity} fetched from API and cached.`);
     } catch (err: any) {
       console.error('API Error in useWeather:', err);
       let errorMessage = 'Error fetching weather data. Please try again later.';

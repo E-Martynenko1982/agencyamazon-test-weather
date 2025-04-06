@@ -44,10 +44,6 @@ async function fetchCityCoordinates(
       );
       throw new Error(`City not found: ${inputCityTrimmed}`);
     }
-
-    console.log(
-      `Coordinates validated for "${inputCityTrimmed}" as "${foundName}": lat=${lat}, lon=${lon}`,
-    );
     return { lat, lon, name: foundName };
   } catch (error: any) {
     if (
@@ -94,7 +90,6 @@ export async function fetchWeatherByCity(city: string): Promise<WeatherData> {
       icon: weatherApiData.weather[0].icon,
       dt: weatherApiData.dt,
     };
-    console.log('Weather data received:', weatherResult);
     return weatherResult;
   } catch (error: any) {
     if (error.message.includes('City not found:')) {

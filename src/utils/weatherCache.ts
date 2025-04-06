@@ -52,7 +52,6 @@ export const setCachedWeatherData = (city: string, data: WeatherData): void => {
 
   try {
     localStorage.setItem(cacheKey, JSON.stringify(payload));
-    console.log(`Weather data for ${city} cached.`);
   } catch (error) {
     console.error('Error setting cache:', cacheKey, error);
   }
@@ -61,5 +60,4 @@ export const setCachedWeatherData = (city: string, data: WeatherData): void => {
 export const removeCachedWeather = (city: string): void => {
   const cacheKey = generateCacheKey(city);
   localStorage.removeItem(cacheKey);
-  console.log(`Cache removed for ${city}.`);
 };

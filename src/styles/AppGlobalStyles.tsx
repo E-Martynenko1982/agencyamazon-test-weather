@@ -10,7 +10,7 @@ const globalStyleObject = {
     backgroundPosition: 'center center',
     backgroundRepeat: 'no-repeat',
     backgroundAttachment: 'fixed',
-    backgroundColor: '#cccccc', // Fallback color
+    backgroundColor: '#cccccc',
   },
   html: {
     height: '100%',
