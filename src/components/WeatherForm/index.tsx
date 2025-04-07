@@ -4,23 +4,17 @@ import {
   TextField,
   Button,
   Alert,
-  Card,
-  CardContent,
-  Typography,
-  CardMedia,
   CircularProgress,
+  Typography
 } from "@mui/material";
-import {
-  weatherFormContainerStyles,
-  weatherCardStyles,
-  weatherIconStyles
-} from "./WeatherForm.styles";
-import { formatTime } from "../../utils/formatters";
+import { weatherFormContainerStyles } from "./WeatherForm.styles";
 import { useWeather } from "../../hooks/useWeather";
+import WeatherCard from "../WeatherCard";
 
 const WeatherForm: React.FC = () => {
   const [city, setCity] = useState<string>("");
   const { weather, error, isLoading, fetchWeather } = useWeather();
+
   const handleSearch = useCallback(() => {
     fetchWeather(city);
   }, [city, fetchWeather]);
@@ -33,8 +27,11 @@ const WeatherForm: React.FC = () => {
 
   return (
     <Box sx={weatherFormContainerStyles}>
+      <Typography variant="h4" component="h1" align="center" gutterBottom>
+        Weather App
+      </Typography>
       <TextField
-        label="Enter city name"
+        label="Введіть назву міста"
         variant="outlined"
         value={city}
         onChange={(e) => setCity(e.target.value)}
@@ -42,50 +39,37 @@ const WeatherForm: React.FC = () => {
         data-testid="city-input"
         fullWidth
         disabled={isLoading}
+        placeholder="Наприклад, London"
       />
       <Button
         variant="contained"
         onClick={handleSearch}
         fullWidth
-        disabled={isLoading}
-        sx={{ position: 'relative' }}
+        disabled={isLoading || !city.trim()}
+        sx={{ position: 'relative', minHeight: 48 }}
       >
         {isLoading ? (
           <CircularProgress size={24} sx={{ color: 'white', position: 'absolute' }} />
         ) : (
-          'Get Weather'
+          'Дізнатись погоду'
         )}
       </Button>
+
+
       {error && !isLoading && (
         <Alert severity="error" data-testid="error-message">
           {error}
         </Alert>
       )}
+
       {weather && !error && !isLoading && (
-        <Card data-testid="weather-data" sx={weatherCardStyles}>
-          <CardContent sx={{ paddingBottom: 0 }}>
-            <Typography variant="h5" gutterBottom>
-              {weather.cityName}
-            </Typography>
-            <Typography variant="h6" gutterBottom>
-              {Math.round(weather.temperature)}°C
-            </Typography>
-            <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-              {weather.description}
-            </Typography>
-            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
-              (as of {formatTime(weather.dt)})
-            </Typography>
-          </CardContent>
-          {weather.icon && (
-            <CardMedia
-              component="img"
-              sx={weatherIconStyles}
-              image={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-              alt={weather.description}
-            />
-          )}
-        </Card>
+        <WeatherCard weather={weather} />
+      )}
+
+      {isLoading && !weather && !error && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <CircularProgress />
+        </Box>
       )}
     </Box>
   );

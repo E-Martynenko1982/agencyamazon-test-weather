@@ -9,7 +9,8 @@ import {
 } from "@mui/material";
 import AppGlobalStyles from './styles/AppGlobalStyles';
 import { mainContainerStyles, titleStyles } from './styles/mainAppStyles';
-import WeatherForm from "./components/WeatherForm/WeatherForm";
+import WeatherForm from "./components/WeatherForm";
+
 
 const theme = createTheme({});
 

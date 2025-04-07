@@ -7,40 +7,32 @@ const generateCacheKey = (city: string): string => {
   return `${CACHE_PREFIX}${city.trim().toLowerCase()}`;
 };
 
-export const getCachedWeatherData = (city: string): CachedWeather | null => {
+export const getValidCachedWeatherData = (
+  city: string,
+  durationMs: number = DEFAULT_CACHE_DURATION_MS,
+): CachedWeather | null => {
   const cacheKey = generateCacheKey(city);
   const cachedStr = localStorage.getItem(cacheKey);
 
   if (!cachedStr) {
     return null;
   }
-
   try {
     const cached: CachedWeather = JSON.parse(cachedStr);
-
-    if (cached && cached.data && typeof cached.timestamp === 'number') {
-      return cached;
-    } else {
-      console.warn('Invalid cache structure found, removing:', cacheKey);
+    if (!cached || !cached.data || typeof cached.timestamp !== 'number') {
       localStorage.removeItem(cacheKey);
       return null;
     }
+    const now = Date.now();
+    if (now - cached.timestamp >= durationMs) {
+      return null;
+    }
+    return cached;
   } catch (parseError) {
-    console.error('Error parsing cache, removing:', cacheKey, parseError);
+    console.error('Помилка розбору кешу, видалення:', cacheKey, parseError);
     localStorage.removeItem(cacheKey);
     return null;
   }
-};
-
-export const isCacheValid = (
-  cachedItem: CachedWeather | null,
-  durationMs: number = DEFAULT_CACHE_DURATION_MS,
-): boolean => {
-  if (!cachedItem) {
-    return false;
-  }
-  const now = Date.now();
-  return now - cachedItem.timestamp < durationMs;
 };
 
 export const setCachedWeatherData = (city: string, data: WeatherData): void => {
@@ -53,7 +45,7 @@ export const setCachedWeatherData = (city: string, data: WeatherData): void => {
   try {
     localStorage.setItem(cacheKey, JSON.stringify(payload));
   } catch (error) {
-    console.error('Error setting cache:', cacheKey, error);
+    console.error('Помилка збереження кешу:', cacheKey, error);
   }
 };
 

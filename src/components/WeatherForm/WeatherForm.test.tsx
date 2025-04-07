@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import WeatherForm from './WeatherForm';
+import WeatherForm from '.';
 import { formatTime } from '../../utils/formatters';
 import { WeatherData } from '../../types/weather';
 
