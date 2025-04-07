@@ -1,4 +1,4 @@
-Посилання на розгорнутий застосунок: [Live Demo](https://stellular-sprite-09e14f.netlify.app/)
+Посилання на деплой: [Live Demo](https://stellular-sprite-09e14f.netlify.app/)
 
 # Tech stack
 
